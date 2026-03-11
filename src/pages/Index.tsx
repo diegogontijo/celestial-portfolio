@@ -1,7 +1,8 @@
-import { Navbar } from "@/components/Navbar";
-import { HeroSection } from "@/components/HeroSection";
+import { Navbar } from "@/components/newNavBar";
+import { HeroSection } from "@/components/newHeroSection";
 import { ProjectsSection } from "@/components/ProjectsSection";
 import { SkillsSection } from "@/components/SkillsSection";
+import { ContactSection } from "@/components/ContactSection";
 
 const Index = () => {
   return (
@@ -10,11 +11,12 @@ const Index = () => {
       <HeroSection />
       <ProjectsSection />
       <SkillsSection />
+      <ContactSection />
 
       {/* Footer */}
       <footer className="py-12 px-4 text-center border-t border-border">
         <p className="text-sm text-muted-foreground">
-          © 2026 Paweł Szostak. Built with passion.
+          © 2026 Diego Gontijo.
         </p>
       </footer>
     </div>
