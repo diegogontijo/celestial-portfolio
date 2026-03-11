@@ -30,7 +30,7 @@ export function Navbar() {
     >
       <div className="container mx-auto flex items-center justify-between px-6 py-4">
         <button onClick={() => scrollTo("hero")} className="text-xl font-bold text-gradient">
-          DG
+          <span className="glow-text">DG</span>
         </button>
 
         <div className="hidden md:flex items-center gap-1 rounded-full border border-border bg-secondary/50 px-2 py-1">
