@@ -15,7 +15,7 @@ const projects = [
   {
     number: "01",
     type: "DESKTOP APP",
-    name: "Cube Solver",
+    name: "Sua Inflação",
     description:
       "Desktop application using computer vision to scan and solve Rubik's Cube in real-time.",
     tags: ["C++", "OPENCV", "CLUSTERING", "ALGORITHMS"],
@@ -47,7 +47,7 @@ const projects = [
 export function ProjectsSection() {
   return (
     <section id="projects" className="px-4 py-24">
-      <div className="mx-auto max-w-6xl">
+      <div className="mx-auto max-w-7xl">
         <BlurFade delay={0.1} inView>
           <p className="mb-3 text-center text-xs uppercase tracking-[0.3em] text-muted-foreground">
             Portfolio
@@ -94,13 +94,13 @@ export function ProjectsSection() {
                 </div>
 
                 <div
-                  className={`${project.colorClass} relative min-h-[360px] overflow-hidden rounded-2xl p-6`}
+                  className={`${project.colorClass} relative min-h-[440px] overflow-hidden rounded-2xl p-6`}
                 >
                   <p className="relative z-10 max-w-xs text-sm leading-relaxed text-foreground/90">
                     {project.description}
                   </p>
 
-                  <div className="absolute bottom-4 left-4 right-4 top-24">
+                  <div className="absolute bottom-7 left-4 right-4 top-24">
                     <ProjectCardStack images={project.images} />
                   </div>
                 </div>

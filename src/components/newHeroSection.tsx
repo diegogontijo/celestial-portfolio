@@ -20,7 +20,7 @@ export function HeroSection() {
             <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold leading-tight mb-4">
               <span className="text-foreground">DIEGO</span>
               <br />
-              <span className="text-gradient">GONTIJO</span>
+              <span className="glow-text">GONTIJO</span>
             </h1>
 
             <p className="text-lg font-mono text-muted-foreground tracking-widest uppercase mb-8">

@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { motion, useMotionValue, useTransform } from "framer-motion";
+import { ShineBorder } from "./shine-border";
 
 const MAX_ROTATE = 5;
 
@@ -50,6 +51,7 @@ export function TiltCard() {
         whileHover={{ scale: 1.01 }}
       >
         <div className="w-full h-full rounded-xl overflow-hidden">
+            <ShineBorder shineColor={["#A07CFE", "#FE8FB5", "#FFBE7B"]} />
             <img
             src="/jordan.jpg"
             alt="Developer Avatar"

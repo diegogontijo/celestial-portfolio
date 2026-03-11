@@ -63,17 +63,34 @@
 
   html {
     scroll-behavior: smooth;
+    background: hsl(var(--background));
   }
 
   body {
-    @apply bg-background text-foreground font-body antialiased;
-    background: linear-gradient(
-      135deg,
-      hsl(var(--gradient-start)),
-      hsl(var(--gradient-mid)),
-      hsl(var(--gradient-end))
-    );
+    @apply bg-background text-foreground font-sans antialiased;
     min-height: 100vh;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image: radial-gradient(
+      hsl(var(--muted-foreground) / 0.15) 1px,
+      transparent 1px
+    );
+    background-size: 24px 24px;
+  }
+
+  body > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
   }
 }
 @layer components {
@@ -123,15 +140,6 @@
     border: 1px solid hsl(var(--glass-border));
   }
 
-  .dot-pattern {
-    background-image: radial-gradient(
-      circle,
-      hsl(var(--muted-foreground) / 0.15) 1px,
-      transparent 1px
-    );
-    background-size: 24px 24px;
-  }
-
   .project-card-orange {
     background: linear-gradient(135deg, hsl(30 90% 55%), hsl(20 85% 50%));
   }
@@ -179,10 +187,6 @@
     -webkit-backdrop-filter: blur(12px);
   }
 
-  .dot-pattern {
-    background-image: radial-gradient(hsl(var(--muted-foreground) / 0.15) 1px, transparent 1px);
-    background-size: 24px 24px;
-  }
 }
 
 @keyframes shine {
