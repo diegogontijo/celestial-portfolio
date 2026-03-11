@@ -53,7 +53,7 @@ export function TiltCard() {
         <div className="w-full h-full rounded-xl overflow-hidden">
             <ShineBorder shineColor={["#A07CFE", "#FE8FB5", "#FFBE7B"]} />
             <img
-            src="/jordan.jpg"
+            src="/perf.jpeg"
             alt="Developer Avatar"
             className="w-full h-full object-cover"
             style={{ transform: "translateZ(40px)" }}
