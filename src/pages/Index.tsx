@@ -16,7 +16,7 @@ const Index = () => {
       {/* Footer */}
       <footer className="nav-glass py-12 px-4 text-center border-t border-border">
         <p className="text-sm text-muted-foreground">
-          © 2026 Diego Gontijo.
+          © 2026 Desenvolvido por Diego Gontijo.
         </p>
       </footer>
     </div>
