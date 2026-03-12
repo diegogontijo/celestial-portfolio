@@ -38,36 +38,36 @@ function fibonacciSphere(n: number, radius: number): THREE.Vector3[] {
   return points;
 }
 
-// Create a canvas-based texture for each icon (text label fallback + colored circle)
-function useIconTexture(name: string, color: string) {
-  return useMemo(() => {
-    const size = 128;
+function useSvgTexture(slug: string, color: string) {
+  const texture = useMemo(() => {
+    const size = 256;
     const canvas = document.createElement("canvas");
     canvas.width = size;
     canvas.height = size;
-    const ctx = canvas.getContext("2d")!;
+    const tex = new THREE.CanvasTexture(canvas);
 
-    // Draw colored circle
-    ctx.beginPath();
-    ctx.arc(size / 2, size / 2, size / 2 - 4, 0, Math.PI * 2);
-    ctx.fillStyle = `#${color}22`;
-    ctx.fill();
-    ctx.strokeStyle = `#${color}`;
-    ctx.lineWidth = 3;
-    ctx.stroke();
+    const url = `https://cdn.simpleicons.org/${slug}/${color}`;
+    fetch(url)
+      .then((res) => res.text())
+      .then((svgText) => {
+        const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
+        const blobUrl = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => {
+          const ctx = canvas.getContext("2d")!;
+          ctx.clearRect(0, 0, size, size);
+          const pad = 40;
+          ctx.drawImage(img, pad, pad, size - pad * 2, size - pad * 2);
+          tex.needsUpdate = true;
+          URL.revokeObjectURL(blobUrl);
+        };
+        img.src = blobUrl;
+      });
 
-    // Draw text
-    const initials = name.slice(0, 2).toUpperCase();
-    ctx.fillStyle = `#${color}`;
-    ctx.font = "bold 48px Inter, sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(initials, size / 2, size / 2);
+    return tex;
+  }, [slug, color]);
 
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.needsUpdate = true;
-    return texture;
-  }, [name, color]);
+  return texture;
 }
 
 function IconNode({
