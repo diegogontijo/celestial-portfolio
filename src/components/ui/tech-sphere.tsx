@@ -1,35 +1,31 @@
-import { useRef, useMemo, useState, useEffect, Suspense } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { useRef, useMemo, useState, useEffect, useCallback, Suspense } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 
 const SKILLS = [
-  { name: "Git",         slug: "git",          color: "F05032" },
-  { name: "Docker",      slug: "docker",       color: "2496ED" },
+  { name: "React",       slug: "react",        color: "61DAFB" },
+  { name: "TypeScript",  slug: "typescript",   color: "3178C6" },
   { name: "Node.js",     slug: "nodedotjs",    color: "339933" },
   { name: "Python",      slug: "python",       color: "3776AB" },
   { name: "C++",         slug: "cplusplus",    color: "00599C" },
-  { name: "TypeScript",  slug: "typescript",   color: "3178C6" },
-  { name: "NestJS",      slug: "nestjs",       color: "F24E1E" },
-  { name: "React",       slug: "react",        color: "61DAFB" },
+  { name: "Docker",      slug: "docker",       color: "2496ED" },
+  { name: "PostgreSQL",  slug: "postgresql",   color: "4169E1" },
+  { name: "Git",         slug: "git",          color: "F05032" },
   { name: "JavaScript",  slug: "javascript",   color: "F7DF1E" },
-  { name: "Next.js",     slug: "nextdotjs",    color: "FFFFFF" },
   { name: "Prisma",      slug: "prisma",       color: "FFFFFF" },
-  { name: "Tailwind",    slug: "tailwindcss",  color: "06B6D4" },
   { name: "Vercel",      slug: "vercel",       color: "FFFFFF" },
   { name: "Figma",       slug: "figma",        color: "F24E1E" },
-  { name: "PostgreSQL",  slug: "postgresql",   color: "4169E1" },
+  { name: "Next.js",     slug: "nextdotjs",    color: "FFFFFF" },
+  { name: "NestJS",      slug: "nestjs",       color: "F24E1E" },
+  { name: "Tailwind",    slug: "tailwindcss",  color: "06B6D4" },
   { name: "GitHub",      slug: "github",       color: "FFFFFF" },
 ];
 
 const SPHERE_RADIUS = 2.3;
 
-// ─── Opacity / brightness constants ──────────────────────────────────────────
-// t = 1  → icon is directly in front of the camera (closest point on sphere)
-// t = 0  → icon is directly behind  the camera (furthest point on sphere)
 const OPACITY_FRONT = 1.0;
 const OPACITY_BACK  = 0.12;
-// Color multiplier applied to the material colour when icon is at the back
 const BRIGHT_FRONT  = 1.0;
 const BRIGHT_BACK   = 0.25;
 
@@ -64,7 +60,6 @@ function buildOrientation(localPos: THREE.Vector3): THREE.Quaternion {
   return new THREE.Quaternion().setFromRotationMatrix(basis);
 }
 
-// smooth step: maps t ∈ [0,1] to a smooth curve
 function smoothstep(t: number): number {
   const c = Math.max(0, Math.min(1, t));
   return c * c * (3 - 2 * c);
@@ -131,33 +126,39 @@ function useAllTextures() {
   return textures;
 }
 
-// ─── Scene ────────────────────────────────────────────────────────────────────
+// ─── Tooltip label (HTML overlay) ────────────────────────────────────────────
 
-/**
- * Scene manages the rotating group and drives per-icon depth dimming.
- *
- * Strategy
- * --------
- * All icons live inside a single <group> that rotates every frame.
- * Each icon mesh is registered in a `meshRefs` array.
- *
- * In the shared useFrame callback we:
- *   1. Advance the group rotation (y-axis spin).
- *   2. For every icon mesh, call getWorldPosition() to obtain its current
- *      world-space position (Three.js always returns the up-to-date value
- *      because the scene graph matrices are updated before useFrame runs).
- *   3. Compute the dot product of the icon's world position (normalised)
- *      with the camera's forward direction.  Because the camera points from
- *      +Z toward the origin:
- *        dot  ≈ +1  →  icon is directly behind the sphere  (back)
- *        dot  ≈ -1  →  icon is directly in front of camera (front)
- *   4. Remap that dot product to a smooth [0,1] "frontness" value and apply
- *      it to both opacity and colour.
- *
- * Using a single useFrame for all icons is more efficient than one per icon
- * and avoids the ordering issues that caused the previous bugs.
- */
-function Scene() {
+interface TooltipState {
+  name: string;
+  x: number; // pixels from left of canvas
+  y: number; // pixels from top of canvas
+}
+
+interface TooltipProps {
+  tooltip: TooltipState | null;
+}
+
+function Tooltip({ tooltip }: TooltipProps) {
+  if (!tooltip) return null;
+  return (
+    <div
+      className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full"
+      style={{ left: tooltip.x, top: tooltip.y - 10 }}
+    >
+      <span className="rounded-md bg-black/80 px-2.5 py-1 text-xs font-medium text-white shadow-lg backdrop-blur-sm whitespace-nowrap">
+        {tooltip.name}
+      </span>
+    </div>
+  );
+}
+
+// ─── Raycaster-based hover detection inside the Canvas ───────────────────────
+
+interface SceneProps {
+  onHover: (state: TooltipState | null) => void;
+}
+
+function Scene({ onHover }: SceneProps) {
   const groupRef  = useRef<THREE.Group>(null);
   const meshRefs  = useRef<(THREE.Mesh | null)[]>([]);
 
@@ -165,55 +166,85 @@ function Scene() {
   const orientations   = useMemo(() => localPositions.map(buildOrientation), [localPositions]);
   const textures       = useAllTextures();
 
-  // Reusable objects — allocated once, reused every frame
-  const _worldPos = useMemo(() => new THREE.Vector3(), []);
-  const _camDir   = useMemo(() => new THREE.Vector3(), []);
+  const _worldPos  = useMemo(() => new THREE.Vector3(), []);
+  const _camDir    = useMemo(() => new THREE.Vector3(), []);
+  const raycaster  = useMemo(() => new THREE.Raycaster(), []);
+  const pointer    = useMemo(() => new THREE.Vector2(), []);
 
-  useFrame(({ camera }, delta) => {
+  const { gl, camera, size } = useThree();
+
+  // Track mouse position in normalised device coordinates
+  const onMouseMove = useCallback((e: MouseEvent) => {
+    const rect = gl.domElement.getBoundingClientRect();
+    pointer.x =  ((e.clientX - rect.left)  / rect.width)  * 2 - 1;
+    pointer.y = -((e.clientY - rect.top)   / rect.height) * 2 + 1;
+  }, [gl, pointer]);
+
+  const onMouseLeave = useCallback(() => {
+    pointer.set(Infinity, Infinity); // move pointer off-screen
+    onHover(null);
+  }, [pointer, onHover]);
+
+  useEffect(() => {
+    const el = gl.domElement;
+    el.addEventListener("mousemove", onMouseMove);
+    el.addEventListener("mouseleave", onMouseLeave);
+    return () => {
+      el.removeEventListener("mousemove", onMouseMove);
+      el.removeEventListener("mouseleave", onMouseLeave);
+    };
+  }, [gl, onMouseMove, onMouseLeave]);
+
+  useFrame(({ camera: cam }, delta) => {
     // 1. Rotate the group
     if (groupRef.current) {
       groupRef.current.rotation.y += delta * 0.08;
     }
 
-    // 2. Camera forward direction (points from camera toward origin)
-    camera.getWorldDirection(_camDir); // normalised, points INTO the scene
-
-    // 3. Update each icon's opacity and colour
+    // 2. Depth dimming
+    cam.getWorldDirection(_camDir);
     meshRefs.current.forEach((mesh) => {
       if (!mesh) return;
       const mat = mesh.material as THREE.MeshBasicMaterial;
-
-      // World position of this icon (updated automatically by Three.js)
       mesh.getWorldPosition(_worldPos);
-
-      // Normalise the icon's world position to get its direction from origin.
-      // dot(iconDir, camDir):
-      //   +1 → icon is directly behind the sphere (same direction as camera looks)
-      //   -1 → icon is directly in front (opposite to where camera looks)
       const iconDir = _worldPos.clone().normalize();
-      const dot = iconDir.dot(_camDir); // range [-1, +1]
-
-      // Convert to frontness: 1 = fully in front, 0 = fully behind
-      // dot = -1 → frontness = 1 (front)
-      // dot = +1 → frontness = 0 (back)
-      const rawFrontness = (-dot + 1) / 2; // [0, 1]
-      const frontness = smoothstep(rawFrontness);  // smooth curve
-
-      // Apply opacity
+      const dot = iconDir.dot(_camDir);
+      const frontness = smoothstep((-dot + 1) / 2);
       mat.opacity = OPACITY_BACK + frontness * (OPACITY_FRONT - OPACITY_BACK);
-
-      // Apply brightness via colour (white = full brightness, dark grey = dim)
-      const brightness = BRIGHT_BACK + frontness * (BRIGHT_FRONT - BRIGHT_BACK);
-      mat.color.setScalar(brightness);
+      mat.color.setScalar(BRIGHT_BACK + frontness * (BRIGHT_FRONT - BRIGHT_BACK));
     });
+
+    // 3. Raycast for hover — only test meshes that are on the front hemisphere
+    if (pointer.x === Infinity) return;
+
+    raycaster.setFromCamera(pointer, cam);
+    const targets = meshRefs.current.filter(Boolean) as THREE.Mesh[];
+    const hits = raycaster.intersectObjects(targets, false);
+
+    if (hits.length > 0) {
+      const hitMesh = hits[0].object as THREE.Mesh;
+      const idx = meshRefs.current.indexOf(hitMesh);
+      if (idx !== -1) {
+        // Only show tooltip for front-hemisphere icons
+        hitMesh.getWorldPosition(_worldPos);
+        const iconDir = _worldPos.clone().normalize();
+        const dot = iconDir.dot(_camDir);
+        if (dot < 0) {
+          // Icon is on the front hemisphere — project to screen space
+          const projected = _worldPos.clone().project(camera);
+          const x = (projected.x  *  0.5 + 0.5) * size.width;
+          const y = (-projected.y * 0.5 + 0.5) * size.height;
+          onHover({ name: SKILLS[idx].name, x, y });
+          return;
+        }
+      }
+    }
+    onHover(null);
   });
 
   return (
     <>
-      {/* Wireframe sphere shell */}
       <WireframeSphere />
-
-      {/* Icon group */}
       <group ref={groupRef}>
         {SKILLS.map((skill, i) => {
           const tex = textures.get(skill.slug);
@@ -239,7 +270,6 @@ function Scene() {
           );
         })}
       </group>
-
       <OrbitControls enableZoom={false} enablePan={false} rotateSpeed={0.5} />
     </>
   );
@@ -276,13 +306,16 @@ function WireframeSphere() {
 // ─── Export ───────────────────────────────────────────────────────────────────
 
 export function TechSphere({ className }: { className?: string }) {
+  const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+
   return (
-    <div className={className ?? "w-full h-[400px] md:h-[500px]"}>
+    <div className={`relative ${className ?? "w-full h-[400px] md:h-[500px]"}`}>
       <Canvas camera={{ position: [0, 0, 6.5], fov: 45 }} dpr={[1, 2]}>
         <Suspense fallback={null}>
-          <Scene />
+          <Scene onHover={setTooltip} />
         </Suspense>
       </Canvas>
+      <Tooltip tooltip={tooltip} />
     </div>
   );
 }
