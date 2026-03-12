@@ -22,6 +22,12 @@ const SKILLS = [
   { name: "GitHub", slug: "github", color: "FFFFFF" },
 ];
 
+/**
+ * Minimum opacity for icons on the far back of the sphere.
+ * 0 = fully invisible, 1 = fully opaque.
+ */
+const MIN_OPACITY = 0.08;
+
 function fibonacciSphere(n: number, radius: number): THREE.Vector3[] {
   const points: THREE.Vector3[] = [];
   const goldenAngle = Math.PI * (3 - Math.sqrt(5));
@@ -106,7 +112,27 @@ function useAllTextures() {
   return textures;
 }
 
-function IconNode({ position, texture }: { position: THREE.Vector3; texture: THREE.CanvasTexture }) {
+/**
+ * IconNode renders a single icon plane on the sphere surface.
+ *
+ * Each frame, the icon's world position is projected onto the camera's
+ * view direction. Icons facing the camera (positive Z in view space) are
+ * fully opaque; icons on the back hemisphere are dimmed proportionally,
+ * reaching MIN_OPACITY at the furthest back point.
+ */
+function IconNode({
+  position,
+  texture,
+  groupRef,
+}: {
+  position: THREE.Vector3;
+  texture: THREE.CanvasTexture;
+  groupRef: React.RefObject<THREE.Group>;
+}) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const matRef = useRef<THREE.MeshBasicMaterial>(null);
+
+  // Compute the outward-facing orientation once (relative to local position)
   const orientation = useMemo(() => {
     const outward = position.clone().normalize();
     const worldUp = new THREE.Vector3(0, 1, 0);
@@ -123,10 +149,40 @@ function IconNode({ position, texture }: { position: THREE.Vector3; texture: THR
     return new THREE.Quaternion().setFromRotationMatrix(basis);
   }, [position]);
 
+  // Reusable vectors to avoid per-frame allocations
+  const _worldPos = useMemo(() => new THREE.Vector3(), []);
+  const _camDir = useMemo(() => new THREE.Vector3(), []);
+
+  useFrame(({ camera }) => {
+    if (!meshRef.current || !matRef.current || !groupRef.current) return;
+
+    // Get the icon's current world position (group rotation applied)
+    meshRef.current.getWorldPosition(_worldPos);
+
+    // Camera forward direction (normalised)
+    camera.getWorldDirection(_camDir);
+
+    // Vector from camera to icon
+    const toIcon = _worldPos.clone().sub(camera.position).normalize();
+
+    // dot > 0 → icon is in front of camera; dot < 0 → behind
+    const dot = toIcon.dot(_camDir);
+
+    // Map dot from [-1, 1] to opacity [MIN_OPACITY, 1]
+    // dot = -1 → fully front-facing (camera looks away from icon → icon faces camera)
+    // dot =  1 → fully back-facing
+    // We invert: frontness = (-dot + 1) / 2  ∈ [0, 1]
+    const frontness = (-dot + 1) / 2;
+    const opacity = MIN_OPACITY + frontness * (1 - MIN_OPACITY);
+
+    matRef.current.opacity = opacity;
+  });
+
   return (
-    <mesh position={position} quaternion={orientation} renderOrder={1}>
+    <mesh ref={meshRef} position={position} quaternion={orientation} renderOrder={1}>
       <planeGeometry args={[0.5, 0.5]} />
       <meshBasicMaterial
+        ref={matRef}
         map={texture}
         transparent
         depthTest={false}
@@ -175,7 +231,14 @@ function Scene() {
         {SKILLS.map((skill, i) => {
           const tex = textures.get(skill.slug);
           if (!tex) return null;
-          return <IconNode key={skill.slug} position={positions[i]} texture={tex} />;
+          return (
+            <IconNode
+              key={skill.slug}
+              position={positions[i]}
+              texture={tex}
+              groupRef={groupRef}
+            />
+          );
         })}
       </group>
       <OrbitControls enableZoom={false} enablePan={false} rotateSpeed={0.5} />
