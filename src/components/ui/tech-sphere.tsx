@@ -226,7 +226,7 @@ function Scene() {
               quaternion={orientations[i]}
               renderOrder={1}
             >
-              <planeGeometry args={[0.5, 0.5]} />
+              <planeGeometry args={[0.8, 0.8]} />
               <meshBasicMaterial
                 map={tex}
                 transparent
@@ -278,7 +278,7 @@ function WireframeSphere() {
 export function TechSphere({ className }: { className?: string }) {
   return (
     <div className={className ?? "w-full h-[400px] md:h-[500px]"}>
-      <Canvas camera={{ position: [0, 0, 5.5], fov: 45 }} dpr={[1, 2]}>
+      <Canvas camera={{ position: [0, 0, 6.5], fov: 45 }} dpr={[1, 2]}>
         <Suspense fallback={null}>
           <Scene />
         </Suspense>
