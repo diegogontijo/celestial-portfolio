@@ -22,11 +22,11 @@ const SKILLS = [
   { name: "GitHub", slug: "github", color: "FFFFFF" },
 ];
 
-/**
- * Minimum opacity for icons on the far back of the sphere.
- * 0 = fully invisible, 1 = fully opaque.
- */
-const MIN_OPACITY = 0.08;
+/** Minimum opacity for icons at the very back of the sphere. */
+const MIN_OPACITY = 0.15;
+
+/** Sphere radius used for icon placement. */
+const SPHERE_RADIUS = 2.3;
 
 function fibonacciSphere(n: number, radius: number): THREE.Vector3[] {
   const points: THREE.Vector3[] = [];
@@ -35,7 +35,13 @@ function fibonacciSphere(n: number, radius: number): THREE.Vector3[] {
     const y = 1 - (i / (n - 1)) * 2;
     const r = Math.sqrt(1 - y * y);
     const theta = goldenAngle * i;
-    points.push(new THREE.Vector3(Math.cos(theta) * r * radius, y * radius, Math.sin(theta) * r * radius));
+    points.push(
+      new THREE.Vector3(
+        Math.cos(theta) * r * radius,
+        y * radius,
+        Math.sin(theta) * r * radius
+      )
+    );
   }
   return points;
 }
@@ -82,13 +88,11 @@ function useAllTextures() {
     let cancelled = false;
     const map = new Map<string, THREE.CanvasTexture>();
 
-    // Set fallbacks immediately
     SKILLS.forEach((s) => {
       map.set(s.slug, createFallbackTexture(s.name, s.color));
     });
     setTextures(new Map(map));
 
-    // Then fetch real SVGs
     Promise.all(
       SKILLS.map(async (s) => {
         try {
@@ -115,10 +119,12 @@ function useAllTextures() {
 /**
  * IconNode renders a single icon plane on the sphere surface.
  *
- * Each frame, the icon's world position is projected onto the camera's
- * view direction. Icons facing the camera (positive Z in view space) are
- * fully opaque; icons on the back hemisphere are dimmed proportionally,
- * reaching MIN_OPACITY at the furthest back point.
+ * Depth-based dimming: every frame we read the icon's world Z position.
+ * The camera sits at Z = 5.5 and looks toward Z = 0, so:
+ *   - large positive Z  → icon is close to the camera  → fully opaque
+ *   - large negative Z  → icon is at the back           → MIN_OPACITY
+ *
+ * We map worldZ from [-SPHERE_RADIUS, +SPHERE_RADIUS] to [MIN_OPACITY, 1].
  */
 function IconNode({
   position,
@@ -132,7 +138,6 @@ function IconNode({
   const meshRef = useRef<THREE.Mesh>(null);
   const matRef = useRef<THREE.MeshBasicMaterial>(null);
 
-  // Compute the outward-facing orientation once (relative to local position)
   const orientation = useMemo(() => {
     const outward = position.clone().normalize();
     const worldUp = new THREE.Vector3(0, 1, 0);
@@ -145,37 +150,24 @@ function IconNode({
 
     const up = new THREE.Vector3().crossVectors(outward, right).normalize();
     const basis = new THREE.Matrix4().makeBasis(right, up, outward);
-
     return new THREE.Quaternion().setFromRotationMatrix(basis);
   }, [position]);
 
-  // Reusable vectors to avoid per-frame allocations
+  // Reusable vector — avoids per-frame allocation
   const _worldPos = useMemo(() => new THREE.Vector3(), []);
-  const _camDir = useMemo(() => new THREE.Vector3(), []);
 
-  useFrame(({ camera }) => {
-    if (!meshRef.current || !matRef.current || !groupRef.current) return;
+  useFrame(() => {
+    if (!meshRef.current || !matRef.current) return;
 
-    // Get the icon's current world position (group rotation applied)
+    // World position of this icon after the group has been rotated
     meshRef.current.getWorldPosition(_worldPos);
 
-    // Camera forward direction (normalised)
-    camera.getWorldDirection(_camDir);
+    // worldZ ranges from -SPHERE_RADIUS (back) to +SPHERE_RADIUS (front).
+    // Normalise to [0, 1]: 0 = back, 1 = front.
+    const t = (_worldPos.z + SPHERE_RADIUS) / (2 * SPHERE_RADIUS);
 
-    // Vector from camera to icon
-    const toIcon = _worldPos.clone().sub(camera.position).normalize();
-
-    // dot > 0 → icon is in front of camera; dot < 0 → behind
-    const dot = toIcon.dot(_camDir);
-
-    // Map dot from [-1, 1] to opacity [MIN_OPACITY, 1]
-    // dot = -1 → fully front-facing (camera looks away from icon → icon faces camera)
-    // dot =  1 → fully back-facing
-    // We invert: frontness = (-dot + 1) / 2  ∈ [0, 1]
-    const frontness = (-dot + 1) / 2;
-    const opacity = MIN_OPACITY + frontness * (1 - MIN_OPACITY);
-
-    matRef.current.opacity = opacity;
+    // Map t to opacity: back → MIN_OPACITY, front → 1.0
+    matRef.current.opacity = MIN_OPACITY + t * (1 - MIN_OPACITY);
   });
 
   return (
@@ -215,7 +207,7 @@ function WireframeSphere() {
 
 function Scene() {
   const groupRef = useRef<THREE.Group>(null);
-  const positions = useMemo(() => fibonacciSphere(SKILLS.length, 2.3), []);
+  const positions = useMemo(() => fibonacciSphere(SKILLS.length, SPHERE_RADIUS), []);
   const textures = useAllTextures();
 
   useFrame((_, delta) => {
