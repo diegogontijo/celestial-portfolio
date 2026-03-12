@@ -1,7 +1,16 @@
-import { useRef, useMemo, useState, useEffect, useCallback, Suspense } from "react";
+import {
+  useRef,
+  useMemo,
+  useState,
+  useEffect,
+  useCallback,
+  Suspense,
+} from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
+
+// ─── Data ─────────────────────────────────────────────────────────────────────
 
 const SKILLS = [
   { name: "React",       slug: "react",        color: "61DAFB" },
@@ -22,42 +31,45 @@ const SKILLS = [
   { name: "GitHub",      slug: "github",       color: "FFFFFF" },
 ];
 
-const SPHERE_RADIUS = 2.3;
+// ─── Constants ────────────────────────────────────────────────────────────────
 
+const SPHERE_RADIUS   = 2.3;
+const ICON_SIZE       = 0.8;   // base plane size (world units)
+const ICON_SIZE_HOVER = 0.96;  // 1.2× on hover
+const ROTATION_SPEED  = 0.08;  // radians/s when idle
+const LERP_SPEED      = 12;    // smoothing factor for scale / brightness lerp
+
+// Depth dimming
 const OPACITY_FRONT = 1.0;
 const OPACITY_BACK  = 0.12;
 const BRIGHT_FRONT  = 1.0;
 const BRIGHT_BACK   = 0.25;
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// Hover brightness boost (applied on top of depth dimming)
+const HOVER_BRIGHT_BOOST = 0.35;
+
+// ─── Math helpers ─────────────────────────────────────────────────────────────
 
 function fibonacciSphere(n: number, radius: number): THREE.Vector3[] {
-  const points: THREE.Vector3[] = [];
-  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+  const pts: THREE.Vector3[] = [];
+  const ga = Math.PI * (3 - Math.sqrt(5));
   for (let i = 0; i < n; i++) {
     const y = 1 - (i / (n - 1)) * 2;
     const r = Math.sqrt(1 - y * y);
-    const theta = goldenAngle * i;
-    points.push(
-      new THREE.Vector3(
-        Math.cos(theta) * r * radius,
-        y * radius,
-        Math.sin(theta) * r * radius,
-      )
-    );
+    const t = ga * i;
+    pts.push(new THREE.Vector3(Math.cos(t) * r * radius, y * radius, Math.sin(t) * r * radius));
   }
-  return points;
+  return pts;
 }
 
-function buildOrientation(localPos: THREE.Vector3): THREE.Quaternion {
-  const outward = localPos.clone().normalize();
-  const worldUp = new THREE.Vector3(0, 1, 0);
-  let right = new THREE.Vector3().crossVectors(worldUp, outward);
-  if (right.lengthSq() < 1e-6) right = new THREE.Vector3(1, 0, 0).cross(outward);
+function buildOrientation(p: THREE.Vector3): THREE.Quaternion {
+  const out = p.clone().normalize();
+  const up  = new THREE.Vector3(0, 1, 0);
+  let right = new THREE.Vector3().crossVectors(up, out);
+  if (right.lengthSq() < 1e-6) right = new THREE.Vector3(1, 0, 0).cross(out);
   right.normalize();
-  const up = new THREE.Vector3().crossVectors(outward, right).normalize();
-  const basis = new THREE.Matrix4().makeBasis(right, up, outward);
-  return new THREE.Quaternion().setFromRotationMatrix(basis);
+  const u = new THREE.Vector3().crossVectors(out, right).normalize();
+  return new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(right, u, out));
 }
 
 function smoothstep(t: number): number {
@@ -69,13 +81,12 @@ function smoothstep(t: number): number {
 
 function createSvgTexture(svgText: string, size = 256): THREE.CanvasTexture {
   const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
+  canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d")!;
   const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const img = new Image();
-  const tex = new THREE.CanvasTexture(canvas);
+  const url  = URL.createObjectURL(blob);
+  const img  = new Image();
+  const tex  = new THREE.CanvasTexture(canvas);
   img.onload = () => {
     ctx.clearRect(0, 0, size, size);
     const pad = 32;
@@ -89,8 +100,7 @@ function createSvgTexture(svgText: string, size = 256): THREE.CanvasTexture {
 
 function createFallbackTexture(label: string, color: string, size = 256): THREE.CanvasTexture {
   const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
+  canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d")!;
   ctx.fillStyle = `#${color}`;
   ctx.font = "bold 80px Inter, sans-serif";
@@ -102,91 +112,112 @@ function createFallbackTexture(label: string, color: string, size = 256): THREE.
 
 function useAllTextures() {
   const [textures, setTextures] = useState<Map<string, THREE.CanvasTexture>>(new Map());
-
   useEffect(() => {
     let cancelled = false;
     const map = new Map<string, THREE.CanvasTexture>();
     SKILLS.forEach((s) => map.set(s.slug, createFallbackTexture(s.name, s.color)));
     setTextures(new Map(map));
-
     Promise.all(
       SKILLS.map(async (s) => {
         try {
           const res = await fetch(`https://cdn.simpleicons.org/${s.slug}/${s.color}`);
-          if (!res.ok) throw new Error("not found");
-          const svgText = await res.text();
-          if (!cancelled) map.set(s.slug, createSvgTexture(svgText));
+          if (!res.ok) throw new Error();
+          const svg = await res.text();
+          if (!cancelled) map.set(s.slug, createSvgTexture(svg));
         } catch { /* keep fallback */ }
       })
     ).then(() => { if (!cancelled) setTextures(new Map(map)); });
-
     return () => { cancelled = true; };
   }, []);
-
   return textures;
 }
 
-// ─── Tooltip label (HTML overlay) ────────────────────────────────────────────
+// ─── Tooltip (HTML overlay) ───────────────────────────────────────────────────
 
-interface TooltipState {
-  name: string;
-  x: number; // pixels from left of canvas
-  y: number; // pixels from top of canvas
-}
+interface TooltipState { name: string; x: number; y: number }
 
-interface TooltipProps {
-  tooltip: TooltipState | null;
-}
+function Tooltip({ tooltip }: { tooltip: TooltipState | null }) {
+  // We keep the last known name so the fade-out still shows the text
+  const lastRef = useRef<string>("");
+  if (tooltip) lastRef.current = tooltip.name;
 
-function Tooltip({ tooltip }: TooltipProps) {
-  if (!tooltip) return null;
   return (
     <div
-      className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full"
-      style={{ left: tooltip.x, top: tooltip.y - 10 }}
+      className="pointer-events-none absolute z-20 -translate-x-1/2"
+      style={{
+        left: tooltip?.x ?? 0,
+        // sit 18 px above the icon centre
+        top:  (tooltip?.y ?? 0) - 18,
+        transform: "translate(-50%, -100%)",
+        opacity:    tooltip ? 1 : 0,
+        transition: "opacity 200ms ease, top 120ms ease",
+      }}
     >
-      <span className="rounded-md bg-black/80 px-2.5 py-1 text-xs font-medium text-white shadow-lg backdrop-blur-sm whitespace-nowrap">
-        {tooltip.name}
+      <span
+        style={{
+          display:       "inline-block",
+          padding:       "4px 10px",
+          borderRadius:  "8px",
+          background:    "rgba(0,0,0,0.65)",
+          backdropFilter:"blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
+          border:        "1px solid rgba(255,255,255,0.12)",
+          boxShadow:     "0 4px 16px rgba(0,0,0,0.4)",
+          color:         "#fff",
+          fontSize:      "11px",
+          fontWeight:    600,
+          letterSpacing: "0.04em",
+          whiteSpace:    "nowrap",
+          fontFamily:    "Inter, system-ui, sans-serif",
+        }}
+      >
+        {lastRef.current}
       </span>
     </div>
   );
 }
 
-// ─── Raycaster-based hover detection inside the Canvas ───────────────────────
+// ─── Scene ────────────────────────────────────────────────────────────────────
 
 interface SceneProps {
   onHover: (state: TooltipState | null) => void;
 }
 
 function Scene({ onHover }: SceneProps) {
-  const groupRef  = useRef<THREE.Group>(null);
-  const meshRefs  = useRef<(THREE.Mesh | null)[]>([]);
+  const groupRef = useRef<THREE.Group>(null);
+  const meshRefs = useRef<(THREE.Mesh | null)[]>([]);
+
+  // Per-icon animated state (no React state — mutated directly each frame)
+  const hoverProgress = useRef<number[]>(new Array(SKILLS.length).fill(0));
+  const hoveredIndex  = useRef<number>(-1);
 
   const localPositions = useMemo(() => fibonacciSphere(SKILLS.length, SPHERE_RADIUS), []);
   const orientations   = useMemo(() => localPositions.map(buildOrientation), [localPositions]);
   const textures       = useAllTextures();
 
-  const _worldPos  = useMemo(() => new THREE.Vector3(), []);
-  const _camDir    = useMemo(() => new THREE.Vector3(), []);
-  const raycaster  = useMemo(() => new THREE.Raycaster(), []);
-  const pointer    = useMemo(() => new THREE.Vector2(), []);
+  // Reusable Three.js objects
+  const _worldPos = useMemo(() => new THREE.Vector3(), []);
+  const _camDir   = useMemo(() => new THREE.Vector3(), []);
+  const raycaster = useMemo(() => new THREE.Raycaster(), []);
+  const pointer   = useMemo(() => new THREE.Vector2(Infinity, Infinity), []);
 
   const { gl, camera, size } = useThree();
 
-  // Track mouse position in normalised device coordinates
+  // ── Mouse listeners ──────────────────────────────────────────────────────
   const onMouseMove = useCallback((e: MouseEvent) => {
     const rect = gl.domElement.getBoundingClientRect();
-    pointer.x =  ((e.clientX - rect.left)  / rect.width)  * 2 - 1;
-    pointer.y = -((e.clientY - rect.top)   / rect.height) * 2 + 1;
+    pointer.x =  ((e.clientX - rect.left) / rect.width)  * 2 - 1;
+    pointer.y = -((e.clientY - rect.top)  / rect.height) * 2 + 1;
   }, [gl, pointer]);
 
   const onMouseLeave = useCallback(() => {
-    pointer.set(Infinity, Infinity); // move pointer off-screen
+    pointer.set(Infinity, Infinity);
     onHover(null);
   }, [pointer, onHover]);
 
   useEffect(() => {
     const el = gl.domElement;
+    el.style.cursor = "default";
     el.addEventListener("mousemove", onMouseMove);
     el.addEventListener("mouseleave", onMouseLeave);
     return () => {
@@ -195,51 +226,91 @@ function Scene({ onHover }: SceneProps) {
     };
   }, [gl, onMouseMove, onMouseLeave]);
 
+  // ── Per-frame logic ───────────────────────────────────────────────────────
   useFrame(({ camera: cam }, delta) => {
-    // 1. Rotate the group
+    const dt = Math.min(delta, 0.05); // clamp for tab-switch spikes
+
+    // 1. Rotate group — slow down when something is hovered
     if (groupRef.current) {
-      groupRef.current.rotation.y += delta * 0.08;
+      const anyHovered = hoveredIndex.current !== -1;
+      const speed = anyHovered ? ROTATION_SPEED * 0.15 : ROTATION_SPEED;
+      groupRef.current.rotation.y += dt * speed;
     }
 
-    // 2. Depth dimming
+    // 2. Camera direction for depth dimming
     cam.getWorldDirection(_camDir);
-    meshRefs.current.forEach((mesh) => {
-      if (!mesh) return;
-      const mat = mesh.material as THREE.MeshBasicMaterial;
-      mesh.getWorldPosition(_worldPos);
-      const iconDir = _worldPos.clone().normalize();
-      const dot = iconDir.dot(_camDir);
-      const frontness = smoothstep((-dot + 1) / 2);
-      mat.opacity = OPACITY_BACK + frontness * (OPACITY_FRONT - OPACITY_BACK);
-      mat.color.setScalar(BRIGHT_BACK + frontness * (BRIGHT_FRONT - BRIGHT_BACK));
-    });
 
-    // 3. Raycast for hover — only test meshes that are on the front hemisphere
-    if (pointer.x === Infinity) return;
-
-    raycaster.setFromCamera(pointer, cam);
-    const targets = meshRefs.current.filter(Boolean) as THREE.Mesh[];
-    const hits = raycaster.intersectObjects(targets, false);
-
-    if (hits.length > 0) {
-      const hitMesh = hits[0].object as THREE.Mesh;
-      const idx = meshRefs.current.indexOf(hitMesh);
-      if (idx !== -1) {
-        // Only show tooltip for front-hemisphere icons
-        hitMesh.getWorldPosition(_worldPos);
-        const iconDir = _worldPos.clone().normalize();
-        const dot = iconDir.dot(_camDir);
-        if (dot < 0) {
-          // Icon is on the front hemisphere — project to screen space
-          const projected = _worldPos.clone().project(camera);
-          const x = (projected.x  *  0.5 + 0.5) * size.width;
-          const y = (-projected.y * 0.5 + 0.5) * size.height;
-          onHover({ name: SKILLS[idx].name, x, y });
-          return;
+    // 3. Raycast
+    let newHoveredIdx = -1;
+    if (pointer.x !== Infinity) {
+      raycaster.setFromCamera(pointer, cam);
+      const targets = meshRefs.current.filter(Boolean) as THREE.Mesh[];
+      const hits = raycaster.intersectObjects(targets, false);
+      if (hits.length > 0) {
+        const hitMesh = hits[0].object as THREE.Mesh;
+        const idx = meshRefs.current.indexOf(hitMesh);
+        if (idx !== -1) {
+          hitMesh.getWorldPosition(_worldPos);
+          const dot = _worldPos.clone().normalize().dot(_camDir);
+          if (dot < 0) newHoveredIdx = idx; // front hemisphere only
         }
       }
     }
-    onHover(null);
+
+    // Update cursor style
+    gl.domElement.style.cursor = newHoveredIdx !== -1 ? "pointer" : "default";
+
+    // Emit tooltip (only when hovered index changes to avoid spam)
+    if (newHoveredIdx !== hoveredIndex.current) {
+      hoveredIndex.current = newHoveredIdx;
+      if (newHoveredIdx === -1) {
+        onHover(null);
+      }
+      // Tooltip position is updated every frame below when hovered
+    }
+
+    // 4. Per-icon update
+    meshRefs.current.forEach((mesh, i) => {
+      if (!mesh) return;
+      const mat = mesh.material as THREE.MeshBasicMaterial;
+
+      // World position
+      mesh.getWorldPosition(_worldPos);
+
+      // Depth dimming
+      const dot = _worldPos.clone().normalize().dot(_camDir);
+      const frontness = smoothstep((-dot + 1) / 2);
+      const baseOpacity    = OPACITY_BACK + frontness * (OPACITY_FRONT - OPACITY_BACK);
+      const baseBrightness = BRIGHT_BACK  + frontness * (BRIGHT_FRONT  - BRIGHT_BACK);
+
+      // Hover progress lerp (0 = idle, 1 = fully hovered)
+      const targetProgress = i === hoveredIndex.current ? 1 : 0;
+      hoverProgress.current[i] = THREE.MathUtils.lerp(
+        hoverProgress.current[i],
+        targetProgress,
+        1 - Math.exp(-LERP_SPEED * dt),
+      );
+      const hp = hoverProgress.current[i];
+
+      // Scale: lerp between base size and hover size
+      const scale = ICON_SIZE + (ICON_SIZE_HOVER - ICON_SIZE) * hp;
+      mesh.scale.setScalar(scale / ICON_SIZE); // geometry is baked at ICON_SIZE
+
+      // Brightness: add hover boost
+      const brightness = Math.min(1, baseBrightness + HOVER_BRIGHT_BOOST * hp);
+      mat.color.setScalar(brightness);
+
+      // Opacity: slightly boost on hover too
+      mat.opacity = Math.min(1, baseOpacity + 0.15 * hp);
+
+      // Emit tooltip position every frame while hovered (so it tracks rotation)
+      if (i === hoveredIndex.current && hp > 0.05) {
+        const projected = _worldPos.clone().project(camera);
+        const sx = ( projected.x * 0.5 + 0.5) * size.width;
+        const sy = (-projected.y * 0.5 + 0.5) * size.height;
+        onHover({ name: SKILLS[i].name, x: sx, y: sy });
+      }
+    });
   });
 
   return (
@@ -257,7 +328,7 @@ function Scene({ onHover }: SceneProps) {
               quaternion={orientations[i]}
               renderOrder={1}
             >
-              <planeGeometry args={[0.8, 0.8]} />
+              <planeGeometry args={[ICON_SIZE, ICON_SIZE]} />
               <meshBasicMaterial
                 map={tex}
                 transparent
@@ -279,25 +350,17 @@ function Scene({ onHover }: SceneProps) {
 
 function WireframeSphere() {
   const ref = useRef<THREE.Group>(null);
-
   useFrame((_, delta) => {
     if (ref.current) {
       ref.current.rotation.y += delta * 0.06;
       ref.current.rotation.x += delta * 0.02;
     }
   });
-
   return (
     <group ref={ref}>
       <mesh renderOrder={0}>
         <sphereGeometry args={[2, 24, 24]} />
-        <meshBasicMaterial
-          color="#22d3ee"
-          wireframe
-          transparent
-          opacity={0.07}
-          depthWrite={false}
-        />
+        <meshBasicMaterial color="#22d3ee" wireframe transparent opacity={0.07} depthWrite={false} />
       </mesh>
     </group>
   );
