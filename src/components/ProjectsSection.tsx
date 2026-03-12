@@ -4,12 +4,15 @@ import { ProjectCardStack } from "@/components/ui/project-card-stack";
 import { Star } from "lucide-react";
 
 import cube1 from "@/assets/project-cube.jpg";
-// import cube2 from "@/assets/project-cube-2.jpg";
-// import cube3 from "@/assets/project-cube-3.jpg";
+import p1 from "@/assets/p1.jpg";
+import p3 from "@/assets/p3.jpg";
+import p4 from "@/assets/p4.jpg";
+import p5 from "@/assets/p5.jpg";
+import p6 from "@/assets/p6.jpg";
+import p7 from "@/assets/p7.jpg";
 
 import tree1 from "@/assets/project-tree.jpg";
-// import tree2 from "@/assets/project-tree-2.jpg";
-// import tree3 from "@/assets/project-tree-3.jpg";
+
 
 const projects = [
   {
@@ -20,9 +23,9 @@ const projects = [
       "Desktop application using computer vision to scan and solve Rubik's Cube in real-time.",
     tags: ["C++", "OPENCV", "CLUSTERING", "ALGORITHMS"],
     images: [
-      { src: cube1, alt: "Cube Solver screenshot 1" },
-      { src: tree1, alt: "Cube Solver screenshot 2" },
-      { src: cube1, alt: "Cube Solver screenshot 3" },
+      { src: p1, alt: "screenshot 1" },
+      { src: p3, alt: "screenshot 2" },
+      { src: p4, alt: "screenshot 3" },
     ],
     colorClass: "project-card-orange",
     starred: true,
@@ -35,9 +38,9 @@ const projects = [
       "Full-stack mobile app with cloud server that gamifies personal development.",
     tags: ["REACT NATIVE", "EXPO", "JAVA", "SPRING BOOT"],
     images: [
-      { src: tree1, alt: "Improvement Tree screenshot 1" },
-      { src: tree1, alt: "Improvement Tree screenshot 2" },
-      { src: tree1, alt: "Improvement Tree screenshot 3" },
+      { src: p5, alt: "Tree screenshot 1" },
+      { src: p6, alt: "Tree screenshot 2" },
+      { src: p7, alt: "Tree screenshot 3" },
     ],
     colorClass: "project-card-green",
     starred: false,
