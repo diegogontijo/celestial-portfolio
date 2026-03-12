@@ -139,6 +139,7 @@ function IconCloud() {
           key={skill.slug}
           position={positions[i]}
           name={skill.name}
+          slug={skill.slug}
           color={skill.color}
         />
       ))}
