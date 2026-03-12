@@ -80,7 +80,7 @@ function IconNode({
   color: string;
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
-  const texture = useIconTexture(name, color);
+  const texture = useSvgTexture(slug, color);
 
   useFrame(({ camera }) => {
     if (meshRef.current) {
