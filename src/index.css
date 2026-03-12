@@ -113,13 +113,18 @@
 
   .glow-text {
     background: linear-gradient(
-      135deg,
-      hsl(var(--glow-purple)),
-      hsl(var(--glow-pink))
+      90deg,
+      hsl(var(--glow-purple)) 0%,
+      hsl(var(--glow-pink)) 40%,
+      hsl(0 0% 100% / 0.9) 50%,
+      hsl(var(--glow-pink)) 60%,
+      hsl(var(--glow-purple)) 100%
     );
+    background-size: 200% 100%;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    animation: text-shine 4s ease-in-out infinite;
   }
 
   .glow-text-blue {
@@ -197,13 +202,13 @@
 }
 
 @keyframes shine {
-  0% {
-    background-position: 0% 0%;
-  }
-  50% {
-    background-position: 100% 100%;
-  }
-  100% {
-    background-position: 0% 0%;
-  }
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
+@keyframes text-shine {
+  0% { background-position: 100% 50%; }
+  50% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
 }
