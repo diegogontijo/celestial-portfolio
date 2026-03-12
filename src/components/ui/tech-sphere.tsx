@@ -73,10 +73,12 @@ function useSvgTexture(slug: string, color: string) {
 function IconNode({
   position,
   name,
+  slug,
   color,
 }: {
   position: THREE.Vector3;
   name: string;
+  slug: string;
   color: string;
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
