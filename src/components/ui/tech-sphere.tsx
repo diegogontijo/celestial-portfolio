@@ -1,23 +1,23 @@
-import { useRef, useMemo, useState, useCallback } from "react";
-import { Canvas, useFrame, useLoader } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { useRef, useMemo, Suspense } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { OrbitControls, useTexture } from "@react-three/drei";
 import * as THREE from "three";
 
 const SKILLS = [
-  { name: "React", slug: "react", color: "#61DAFB" },
-  { name: "TypeScript", slug: "typescript", color: "#3178C6" },
-  { name: "Node.js", slug: "nodedotjs", color: "#339933" },
-  { name: "Python", slug: "python", color: "#3776AB" },
-  { name: "Docker", slug: "docker", color: "#2496ED" },
-  { name: "PostgreSQL", slug: "postgresql", color: "#4169E1" },
-  { name: "Git", slug: "git", color: "#F05032" },
-  { name: "CSS3", slug: "css3", color: "#1572B6" },
-  { name: "JavaScript", slug: "javascript", color: "#F7DF1E" },
-  { name: "Vercel", slug: "vercel", color: "#FFFFFF" },
-  { name: "Figma", slug: "figma", color: "#F24E1E" },
-  { name: "Next.js", slug: "nextdotjs", color: "#FFFFFF" },
-  { name: "Tailwind", slug: "tailwindcss", color: "#06B6D4" },
-  { name: "GitHub", slug: "github", color: "#FFFFFF" },
+  { name: "React", slug: "react", color: "61DAFB" },
+  { name: "TypeScript", slug: "typescript", color: "3178C6" },
+  { name: "Node.js", slug: "nodedotjs", color: "339933" },
+  { name: "Python", slug: "python", color: "3776AB" },
+  { name: "Docker", slug: "docker", color: "2496ED" },
+  { name: "PostgreSQL", slug: "postgresql", color: "4169E1" },
+  { name: "Git", slug: "git", color: "F05032" },
+  { name: "JavaScript", slug: "javascript", color: "F7DF1E" },
+  { name: "Vercel", slug: "vercel", color: "FFFFFF" },
+  { name: "Figma", slug: "figma", color: "F24E1E" },
+  { name: "Next.js", slug: "nextdotjs", color: "FFFFFF" },
+  { name: "Tailwind", slug: "tailwindcss", color: "06B6D4" },
+  { name: "GitHub", slug: "github", color: "FFFFFF" },
+  { name: "CSS3", slug: "css3", color: "1572B6" },
 ];
 
 function fibonacciSphere(n: number, radius: number): THREE.Vector3[] {
@@ -27,16 +27,60 @@ function fibonacciSphere(n: number, radius: number): THREE.Vector3[] {
     const y = 1 - (i / (n - 1)) * 2;
     const r = Math.sqrt(1 - y * y);
     const theta = goldenAngle * i;
-    points.push(new THREE.Vector3(Math.cos(theta) * r * radius, y * radius, Math.sin(theta) * r * radius));
+    points.push(
+      new THREE.Vector3(
+        Math.cos(theta) * r * radius,
+        y * radius,
+        Math.sin(theta) * r * radius
+      )
+    );
   }
   return points;
 }
 
-function LogoSprite({ position, url, name, color }: { position: THREE.Vector3; url: string; name: string; color: string }) {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const [hovered, setHovered] = useState(false);
+// Create a canvas-based texture for each icon (text label fallback + colored circle)
+function useIconTexture(name: string, color: string) {
+  return useMemo(() => {
+    const size = 128;
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d")!;
 
-  const texture = useLoader(THREE.TextureLoader, url);
+    // Draw colored circle
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, size / 2 - 4, 0, Math.PI * 2);
+    ctx.fillStyle = `#${color}22`;
+    ctx.fill();
+    ctx.strokeStyle = `#${color}`;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Draw text
+    const initials = name.slice(0, 2).toUpperCase();
+    ctx.fillStyle = `#${color}`;
+    ctx.font = "bold 48px Inter, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(initials, size / 2, size / 2);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+    return texture;
+  }, [name, color]);
+}
+
+function IconNode({
+  position,
+  name,
+  color,
+}: {
+  position: THREE.Vector3;
+  name: string;
+  color: string;
+}) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const texture = useIconTexture(name, color);
 
   useFrame(({ camera }) => {
     if (meshRef.current) {
@@ -44,26 +88,11 @@ function LogoSprite({ position, url, name, color }: { position: THREE.Vector3; u
     }
   });
 
-  const dist = position.length();
-  const scale = hovered ? 0.55 : 0.4;
-
   return (
-    <group position={position}>
-      <mesh
-        ref={meshRef}
-        onPointerOver={() => setHovered(true)}
-        onPointerOut={() => setHovered(false)}
-      >
-        <planeGeometry args={[scale, scale]} />
-        <meshBasicMaterial map={texture} transparent alphaTest={0.1} />
-      </mesh>
-      {hovered && (
-        <mesh position={[0, -0.35, 0]} quaternion={meshRef.current?.quaternion}>
-          <planeGeometry args={[1, 0.2]} />
-          <meshBasicMaterial transparent opacity={0} />
-        </mesh>
-      )}
-    </group>
+    <mesh ref={meshRef} position={position}>
+      <planeGeometry args={[0.45, 0.45]} />
+      <meshBasicMaterial map={texture} transparent />
+    </mesh>
   );
 }
 
@@ -72,22 +101,20 @@ function WireframeSphere() {
 
   useFrame((_, delta) => {
     if (ref.current) {
-      ref.current.rotation.y += delta * 0.08;
-      ref.current.rotation.x += delta * 0.03;
+      ref.current.rotation.y += delta * 0.06;
+      ref.current.rotation.x += delta * 0.02;
     }
   });
 
   return (
     <group ref={ref}>
-      {/* Main wireframe sphere */}
       <mesh>
         <sphereGeometry args={[2, 24, 24]} />
-        <meshBasicMaterial color="#1a1040" wireframe transparent opacity={0.3} />
+        <meshBasicMaterial color="#1a1040" wireframe transparent opacity={0.25} />
       </mesh>
-      {/* Subtle inner glow sphere */}
       <mesh>
         <sphereGeometry args={[1.95, 16, 16]} />
-        <meshBasicMaterial color="#2a1a5e" transparent opacity={0.08} />
+        <meshBasicMaterial color="#2a1a5e" transparent opacity={0.06} />
       </mesh>
     </group>
   );
@@ -95,21 +122,20 @@ function WireframeSphere() {
 
 function IconCloud() {
   const groupRef = useRef<THREE.Group>(null);
-  const positions = useMemo(() => fibonacciSphere(SKILLS.length, 2.2), []);
+  const positions = useMemo(() => fibonacciSphere(SKILLS.length, 2.3), []);
 
   useFrame((_, delta) => {
     if (groupRef.current) {
-      groupRef.current.rotation.y += delta * 0.1;
+      groupRef.current.rotation.y += delta * 0.08;
     }
   });
 
   return (
     <group ref={groupRef}>
       {SKILLS.map((skill, i) => (
-        <LogoSprite
+        <IconNode
           key={skill.slug}
           position={positions[i]}
-          url={`https://cdn.simpleicons.org/${skill.slug}/${skill.color.replace("#", "")}`}
           name={skill.name}
           color={skill.color}
         />
@@ -118,29 +144,22 @@ function IconCloud() {
   );
 }
 
-function SceneContent() {
-  return (
-    <>
-      <ambientLight intensity={0.5} />
-      <WireframeSphere />
-      <IconCloud />
-      <OrbitControls
-        enableZoom={false}
-        enablePan={false}
-        autoRotate={false}
-        rotateSpeed={0.5}
-        minPolarAngle={Math.PI / 4}
-        maxPolarAngle={(3 * Math.PI) / 4}
-      />
-    </>
-  );
-}
-
 export function TechSphere({ className }: { className?: string }) {
   return (
     <div className={className ?? "w-full h-[400px] md:h-[500px]"}>
       <Canvas camera={{ position: [0, 0, 5.5], fov: 45 }} dpr={[1, 2]}>
-        <SceneContent />
+        <ambientLight intensity={0.5} />
+        <Suspense fallback={null}>
+          <WireframeSphere />
+          <IconCloud />
+        </Suspense>
+        <OrbitControls
+          enableZoom={false}
+          enablePan={false}
+          rotateSpeed={0.5}
+          minPolarAngle={Math.PI / 4}
+          maxPolarAngle={(3 * Math.PI) / 4}
+        />
       </Canvas>
     </div>
   );
