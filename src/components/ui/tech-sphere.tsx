@@ -4,21 +4,21 @@ import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 
 const SKILLS = [
-  { name: "React",       slug: "react",        color: "61DAFB" },
-  { name: "TypeScript",  slug: "typescript",   color: "3178C6" },
+  { name: "Git",         slug: "git",          color: "F05032" },
+  { name: "Docker",      slug: "docker",       color: "2496ED" },
   { name: "Node.js",     slug: "nodedotjs",    color: "339933" },
   { name: "Python",      slug: "python",       color: "3776AB" },
   { name: "C++",         slug: "cplusplus",    color: "00599C" },
-  { name: "Docker",      slug: "docker",       color: "2496ED" },
-  { name: "PostgreSQL",  slug: "postgresql",   color: "4169E1" },
-  { name: "Git",         slug: "git",          color: "F05032" },
+  { name: "TypeScript",  slug: "typescript",   color: "3178C6" },
+  { name: "NestJS",      slug: "nestjs",       color: "F24E1E" },
+  { name: "React",       slug: "react",        color: "61DAFB" },
   { name: "JavaScript",  slug: "javascript",   color: "F7DF1E" },
+  { name: "Next.js",     slug: "nextdotjs",    color: "FFFFFF" },
   { name: "Prisma",      slug: "prisma",       color: "FFFFFF" },
+  { name: "Tailwind",    slug: "tailwindcss",  color: "06B6D4" },
   { name: "Vercel",      slug: "vercel",       color: "FFFFFF" },
   { name: "Figma",       slug: "figma",        color: "F24E1E" },
-  { name: "Next.js",     slug: "nextdotjs",    color: "FFFFFF" },
-  { name: "NestJS",      slug: "nestjs",       color: "F24E1E" },
-  { name: "Tailwind",    slug: "tailwindcss",  color: "06B6D4" },
+  { name: "PostgreSQL",  slug: "postgresql",   color: "4169E1" },
   { name: "GitHub",      slug: "github",       color: "FFFFFF" },
 ];
 
