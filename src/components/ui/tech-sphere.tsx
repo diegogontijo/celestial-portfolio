@@ -12,6 +12,7 @@ const SKILLS = [
   { name: "PostgreSQL", slug: "postgresql", color: "4169E1" },
   { name: "Git", slug: "git", color: "F05032" },
   { name: "JavaScript", slug: "javascript", color: "F7DF1E" },
+  { name: "Prisma", slug: "prisma", color: "FFFFFF" },
   { name: "Vercel", slug: "vercel", color: "FFFFFF" },
   { name: "Figma", slug: "figma", color: "F24E1E" },
   { name: "Next.js", slug: "nextdotjs", color: "FFFFFF" },
@@ -148,7 +149,7 @@ function WireframeSphere() {
     <group ref={ref}>
       <mesh renderOrder={0}>
         <sphereGeometry args={[2, 24, 24]} />
-        <meshBasicMaterial color="#1a1040" wireframe transparent opacity={0.2} depthWrite={false} />
+        <meshBasicMaterial color="#22d3ee" wireframe transparent opacity={0.1} depthWrite={false} />
       </mesh>
     </group>
   );
