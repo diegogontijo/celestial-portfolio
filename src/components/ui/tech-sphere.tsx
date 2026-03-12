@@ -8,6 +8,7 @@ const SKILLS = [
   { name: "TypeScript", slug: "typescript", color: "3178C6" },
   { name: "Node.js", slug: "nodedotjs", color: "339933" },
   { name: "Python", slug: "python", color: "3776AB" },
+  { name: "C++", slug: "cplusplus", color: "00599C" },
   { name: "Docker", slug: "docker", color: "2496ED" },
   { name: "PostgreSQL", slug: "postgresql", color: "4169E1" },
   { name: "Git", slug: "git", color: "F05032" },
@@ -16,6 +17,7 @@ const SKILLS = [
   { name: "Vercel", slug: "vercel", color: "FFFFFF" },
   { name: "Figma", slug: "figma", color: "F24E1E" },
   { name: "Next.js", slug: "nextdotjs", color: "FFFFFF" },
+  { name: "NestJS", slug: "nestjs", color: "F24E1E" },
   { name: "Tailwind", slug: "tailwindcss", color: "06B6D4" },
   { name: "GitHub", slug: "github", color: "FFFFFF" },
 ];
@@ -149,7 +151,7 @@ function WireframeSphere() {
     <group ref={ref}>
       <mesh renderOrder={0}>
         <sphereGeometry args={[2, 24, 24]} />
-        <meshBasicMaterial color="#22d3ee" wireframe transparent opacity={0.1} depthWrite={false} />
+        <meshBasicMaterial color="#22d3ee" wireframe transparent opacity={0.07} depthWrite={false} />
       </mesh>
     </group>
   );

@@ -15,7 +15,7 @@ export function SkillsSection() {
         </BlurFade>
 
         <BlurFade delay={0.3} inView>
-          <TechSphere className="w-full h-[400px] md:h-[500px] mt-8" />
+          <TechSphere className="w-full h-[400px] md:h-[460px] mt-8" />
         </BlurFade>
       </div>
     </section>
