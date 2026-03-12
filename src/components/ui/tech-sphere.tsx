@@ -104,22 +104,31 @@ function useAllTextures() {
 }
 
 function IconNode({ position, texture }: { position: THREE.Vector3; texture: THREE.CanvasTexture }) {
-  const meshRef = useRef<THREE.Mesh>(null);
+  const orientation = useMemo(() => {
+    const outward = position.clone().normalize();
+    const worldUp = new THREE.Vector3(0, 1, 0);
 
-  useFrame(({ camera }) => {
-    if (meshRef.current) {
-      meshRef.current.quaternion.copy(camera.quaternion);
+    let right = new THREE.Vector3().crossVectors(worldUp, outward);
+    if (right.lengthSq() < 1e-6) {
+      right = new THREE.Vector3(1, 0, 0).cross(outward);
     }
-  });
+    right.normalize();
+
+    const up = new THREE.Vector3().crossVectors(outward, right).normalize();
+    const basis = new THREE.Matrix4().makeBasis(right, up, outward);
+
+    return new THREE.Quaternion().setFromRotationMatrix(basis);
+  }, [position]);
 
   return (
-    <mesh ref={meshRef} position={position} renderOrder={1}>
+    <mesh position={position} quaternion={orientation} renderOrder={1}>
       <planeGeometry args={[0.5, 0.5]} />
       <meshBasicMaterial
         map={texture}
         transparent
         depthTest={false}
         depthWrite={false}
+        side={THREE.DoubleSide}
       />
     </mesh>
   );
