@@ -119,7 +119,7 @@ export function AboutSection() {
               <div className="bento-card relative overflow-hidden aspect-[4/5] rounded-2xl">
                 <ShineBorder shineColor={["#A07CFE", "#FE8FB5", "#FFBE7B"]} />
                 <img
-                  src="/jordan.jpg"
+                  src="/perf.jpeg"
                   alt="Diego Gontijo"
                   className="h-full w-full object-cover object-center"
                 />
