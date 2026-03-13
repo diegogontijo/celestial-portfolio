@@ -1,31 +1,5 @@
-import { motion } from "framer-motion";
-import { GraduationCap, Briefcase } from "lucide-react";
 import { BlurFade } from "@/components/ui/blur-fade";
-
-// ─── Dados ────────────────────────────────────────────────────────────────────
-
-const items = [
-  {
-    icon: GraduationCap,
-    category: "Formação",
-    title: "Ciência da Computação",
-    institution: "Universidade de Brasília — UnB",
-    period: "Em andamento",
-    description:
-      "Cursando Ciência da Computação na UnB, uma das principais universidades do país na área de tecnologia.",
-    delay: 0.2,
-  },
-  {
-    icon: Briefcase,
-    category: "Experiência",
-    title: "Desenvolvedor na CJR",
-    institution: "Empresa Júnior de Tecnologia — UnB",
-    period: "Nov 2024 — presente",
-    description:
-      "Atuo na CJR desenvolvendo projetos reais para clientes, colaborando em equipe e aprimorando habilidades em ambiente profissional.",
-    delay: 0.35,
-  },
-];
+import { Terminal, TypingAnimation, AnimatedSpan } from "@/components/ui/terminal";
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
@@ -44,58 +18,70 @@ export function AboutSection() {
           </h2>
         </BlurFade>
 
-        {/* ── Linha do tempo vertical ── */}
-        <div className="relative mt-16">
+        {/* ── Terminal ── */}
+        <BlurFade delay={0.25} inView>
+          <div className="mt-12">
+            <Terminal className="max-w-full" startOnView sequence>
 
-          {/* Linha central */}
-          <div className="absolute left-[19px] top-0 bottom-0 w-px bg-border" />
+              {/* Prompt inicial */}
+              <TypingAnimation className="text-muted-foreground" duration={40}>
+                $ whoami --education --experience
+              </TypingAnimation>
 
-          <div className="flex flex-col gap-12">
-            {items.map(({ icon: Icon, category, title, institution, period, description, delay }) => (
-              <BlurFade key={title} delay={delay} inView>
-                <motion.div
-                  whileHover={{ x: 4 }}
-                  transition={{ duration: 0.2 }}
-                  className="relative flex gap-6 pl-12"
-                >
-                  {/* Ícone / nó da linha */}
-                  <div className="absolute left-0 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border bg-card text-primary shadow-sm">
-                    <Icon size={16} />
-                  </div>
+              {/* ── Formação ── */}
+              <AnimatedSpan className="mt-4">
+                <span className="text-green-400 font-semibold">✔ Formação</span>
+              </AnimatedSpan>
 
-                  {/* Conteúdo */}
-                  <div className="flex flex-col gap-2 pt-1.5">
-                    {/* Categoria + período */}
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-primary">
-                        {category}
-                      </span>
-                      <span className="h-px w-4 bg-border" />
-                      <span className="text-[10px] font-mono text-muted-foreground">
-                        {period}
-                      </span>
-                    </div>
+              <AnimatedSpan className="pl-4">
+                <span className="text-muted-foreground">curso     </span>
+                <span className="text-foreground">Ciência da Computação</span>
+              </AnimatedSpan>
 
-                    {/* Título */}
-                    <h3 className="font-display text-xl font-bold text-foreground">
-                      {title}
-                    </h3>
+              <AnimatedSpan className="pl-4">
+                <span className="text-muted-foreground">instituição  </span>
+                <span className="text-foreground">Universidade de Brasília — UnB</span>
+              </AnimatedSpan>
 
-                    {/* Instituição */}
-                    <p className="text-sm font-medium text-muted-foreground">
-                      {institution}
-                    </p>
+              <AnimatedSpan className="pl-4">
+                <span className="text-muted-foreground">status    </span>
+                <span className="text-yellow-400">em andamento</span>
+              </AnimatedSpan>
 
-                    {/* Descrição */}
-                    <p className="text-sm text-muted-foreground leading-relaxed max-w-lg">
-                      {description}
-                    </p>
-                  </div>
-                </motion.div>
-              </BlurFade>
-            ))}
+              {/* ── Experiência ── */}
+              <AnimatedSpan className="mt-4">
+                <span className="text-green-400 font-semibold">✔ Experiência</span>
+              </AnimatedSpan>
+
+              <AnimatedSpan className="pl-4">
+                <span className="text-muted-foreground">cargo     </span>
+                <span className="text-foreground">Desenvolvedor</span>
+              </AnimatedSpan>
+
+              <AnimatedSpan className="pl-4">
+                <span className="text-muted-foreground">empresa   </span>
+                <span className="text-foreground">CJR — Empresa Júnior de TI da UnB</span>
+              </AnimatedSpan>
+
+              <AnimatedSpan className="pl-4">
+                <span className="text-muted-foreground">período   </span>
+                <span className="text-foreground">Nov 2024 — presente</span>
+              </AnimatedSpan>
+
+              <AnimatedSpan className="pl-4">
+                <span className="text-muted-foreground">status    </span>
+                <span className="text-green-400">ativo</span>
+              </AnimatedSpan>
+
+              {/* Prompt de encerramento */}
+              <AnimatedSpan className="mt-4">
+                <span className="text-primary">$</span>
+                <span className="text-muted-foreground"> _</span>
+              </AnimatedSpan>
+
+            </Terminal>
           </div>
-        </div>
+        </BlurFade>
 
       </div>
     </section>
