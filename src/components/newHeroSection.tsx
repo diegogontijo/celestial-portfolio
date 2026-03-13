@@ -27,6 +27,15 @@ const subtitleVariants = {
   },
 };
 
+const bioVariants = {
+  hidden:  { opacity: 0, y: 14 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { delay: 1.0, duration: 0.6, ease: "easeOut" },
+  },
+};
+
 // ─── Scroll indicator ─────────────────────────────────────────────────────────
 
 function ScrollIndicator() {
@@ -169,6 +178,18 @@ export function HeroSection() {
           </p>
           <span className="h-px w-10 bg-muted-foreground/30" />
         </motion.div>
+
+        {/* ── Bio ── */}
+        <motion.p
+          variants={bioVariants}
+          initial="hidden"
+          animate="visible"
+          className="mt-6 max-w-md text-sm text-muted-foreground leading-relaxed"
+        >
+          Apaixonado por construir experiências digitais modernas e escaláveis.
+          Estudo Ciência da Computação na UnB e atuo na empresa júnior CJR,
+          desenvolvendo projetos reais desde novembro de 2024.
+        </motion.p>
       </motion.div>
 
       {/* ── Scroll indicator ── */}
