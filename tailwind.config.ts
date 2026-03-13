@@ -18,6 +18,7 @@ export default {
         display: ["Inter", "sans-serif"],
         body: ["Inter", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
+        hero: ["Barlow Condensed", "Arial Narrow", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -95,6 +96,14 @@ export default {
           "0%, 100%": { opacity: "0.4" },
           "50%": { opacity: "0.8" },
         },
+        "scroll-down": {
+          "0%":   { transform: "translateY(0)",    opacity: "1" },
+          "100%": { transform: "translateY(12px)", opacity: "0" },
+        },
+        "pulse-dot": {
+          "0%, 100%": { opacity: "1",   transform: "scale(1)"   },
+          "50%":      { opacity: "0.4", transform: "scale(0.8)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -102,6 +111,8 @@ export default {
         "float": "float 6s ease-in-out infinite",
         "spin-slow": "spin-slow 20s linear infinite",
         "pulse-glow": "pulse-glow 3s ease-in-out infinite",
+        "scroll-down": "scroll-down 1.4s ease-in-out infinite",
+        "pulse-dot":   "pulse-dot 2s ease-in-out infinite",
       },
     },
   },
