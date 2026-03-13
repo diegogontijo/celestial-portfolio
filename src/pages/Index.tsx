@@ -1,5 +1,6 @@
 import { Navbar } from "@/components/newNavBar";
 import { HeroSection } from "@/components/newHeroSection";
+import { AboutSection } from "@/components/AboutSection";
 import { ProjectsSection } from "@/components/ProjectsSection";
 import { SkillsSection } from "@/components/SkillsSection";
 import { ContactSection } from "@/components/ContactSection";
@@ -9,6 +10,7 @@ const Index = () => {
     <div className="relative min-h-screen dot-pattern">
       <Navbar />
       <HeroSection />
+      <AboutSection />
       <ProjectsSection />
       <SkillsSection />
       <ContactSection />
